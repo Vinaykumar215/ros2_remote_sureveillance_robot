@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Surveillance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+  <style>
+    body{font-family:sans-serif;background:#111;color:#eee;margin:0;padding:20px}
+    h1{color:#4af;margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:640px 1fr;gap:20px}
+    img#feed{width:640px;height:480px;border:2px solid #4af;border-radius:8px;background:#222}
+    .controls{background:#1a1a2e;border-radius:8px;padding:20px}
+    .controls h2{color:#4af;margin-top:0}
+    .btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    button{padding:14px;font-size:18px;background:#2a2a4e;color:#eee;border:1px solid #4af;border-radius:6px;cursor:pointer}
+    button:active{background:#4af;color:#111}
+    #status{margin-top:16px;padding:10px;border-radius:6px;background:#0a2a0a;color:#4f4;font-size:13px}
+  </style>
+</head>
+<body>
+  <h1>Remote Surveillance Dashboard</h1>
+  <div class="grid">
+    <img id="feed" src="http://localhost:8080/stream?topic=/camera/image_raw" alt="Camera feed"/>
+    <div class="controls">
+      <h2>Teleop Control</h2>
+      <p style="font-size:13px;color:#aaa">Use buttons or arrow keys</p>
+      <div class="btn-grid">
+        <div></div>
+        <button onclick="move(0.3,0)">&#9650;</button>
+        <div></div>
+        <button onclick="move(0,0.5)">&#9664;</button>
+        <button onclick="move(0,0)">&#9632;</button>
+        <button onclick="move(0,-0.5)">&#9654;</button>
+        <div></div>
+        <button onclick="move(-0.3,0)">&#9660;</button>
+        <div></div>
+      </div>
+      <div id="status">Connecting to rosbridge...</div>
+    </div>
+  </div>
+  <script>
+    const ros=new ROSLIB.Ros({url:'ws://localhost:9090'});
+    const s=document.getElementById('status');
+    ros.on('connection',()=>s.textContent='Connected to ROS2');
+    ros.on('error',()=>s.textContent='Connection error');
+    ros.on('close',()=>s.textContent='Disconnected');
+    const cmd=new ROSLIB.Topic({ros,name:'/cmd_vel',messageType:'geometry_msgs/Twist'});
+    function move(l,a){cmd.publish(new ROSLIB.Message({linear:{x:l,y:0,z:0},angular:{x:0,y:0,z:a}}));}
+    const km={ArrowUp:()=>move(0.3,0),ArrowDown:()=>move(-0.3,0),ArrowLeft:()=>move(0,0.5),ArrowRight:()=>move(0,-0.5),' ':()=>move(0,0)};
+    document.addEventListener('keydown',e=>{if(km[e.key]){e.preventDefault();km[e.key]();}});
+    document.addEventListener('keyup',e=>{if(km[e.key])move(0,0);});
+  </script>
+</body>
+</html>
